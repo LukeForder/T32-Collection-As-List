@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
 using System.ServiceModel.Dispatcher;
@@ -21,30 +22,36 @@ namespace WCF.Behaviors
         public object DeserializeReply(System.ServiceModel.Channels.Message message, object[] parameters)
         {
             object reply = _defaultFormatter.DeserializeReply(message, parameters);
-            
-            TransformReply(reply);
+
+            List<object> flaggedObjects = new List<object>();
+
+            TransformReply(reply, flaggedObjects);
 
             return reply;
         }
 
-        private void TransformCollection(object reply)
+        private void TransformCollection(object reply, List<object> flaggedObjects)
         {
+            Contract.Requires(reply != null);
+            Contract.Requires(flaggedObjects != null);
+            
             IEnumerable collection = reply as IEnumerable;
             IEnumerator enumerator = collection.GetEnumerator();
             if (enumerator == null)
                 return;
 
-            while(enumerator.MoveNext())
+            while(enumerator.MoveNext() && !flaggedObjects.Contains(enumerator.Current))
             {
-                TransformReply(enumerator.Current);
+                flaggedObjects.Add(enumerator.Current);
+                TransformReply(enumerator.Current, flaggedObjects);
             }
         }
 
-        private void TransformReply(object instance)
+        private void TransformReply(object instance, List<object> flaggedObjects)
         {
             if (instance is IEnumerable)
             {
-                TransformCollection(instance);
+                TransformCollection(instance, flaggedObjects);
             }
             else
             {
@@ -67,6 +74,8 @@ namespace WCF.Behaviors
 
                     // set the property value to the list based implementation
                     property.SetValue(instance, list);
+
+                    TransformCollection(list, flaggedObjects);
                 }
             }
         }

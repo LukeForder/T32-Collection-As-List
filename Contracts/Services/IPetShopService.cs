@@ -13,5 +13,11 @@ namespace Contracts.Services
     {
         [OperationContract]
         List<Cat> All();
+
+        [OperationContract]
+        List<Cat> Cyclic();
+
+        [OperationContract]
+        Cat NestedCats();
     }
 }
