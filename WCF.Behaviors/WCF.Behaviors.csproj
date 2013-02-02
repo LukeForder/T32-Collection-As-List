@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClassDataMember.cs" />
     <Compile Include="CollectionIsListBehaviorElement.cs" />
     <Compile Include="CollectionIsListEndpointBehavior.cs" />
     <Compile Include="CollectionIsListMessageFormatter.cs" />

@@ -16,11 +16,9 @@ namespace Services.Web
             // dummy data source
             return new List<Cat>
             {
-                new Cat
+                new Cat("Fluffy")
                 {
                     Breed = "Birman",
-                    Name = "Fluffy",
-                    Descendants = new List<Cat> {}
                 }
             };
         }
@@ -37,10 +35,10 @@ namespace Services.Web
 
             var catC = new Cat
             {
-                Descendants = new List<Cat> { catA }
             };
 
-            catA.Descendants.Add(catC);
+            catC.AddDescendant(catA);
+            catA.AddDescendant(catC);
 
             return new List<Cat>
             {
@@ -58,12 +56,12 @@ namespace Services.Web
             Cat grandDaughter = new Cat();
             Cat son = new Cat();
 
-            daughter.Descendants.Add(grandDaughter);
+            daughter.AddDescendant(grandDaughter);
             
-            mother.Descendants.Add(son);
-            mother.Descendants.Add(daughter);
+            mother.AddDescendant(son);
+            mother.AddDescendant(daughter);
 
-            grandMother.Descendants.Add(daughter);
+            grandMother.AddDescendant(daughter);
 
             return grandMother;
         }

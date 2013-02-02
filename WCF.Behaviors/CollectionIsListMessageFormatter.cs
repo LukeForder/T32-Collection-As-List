@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.ServiceModel.Dispatcher;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,50 +57,58 @@ namespace WCF.Behaviors
             }
             else
             {
+                Type instanceType = instance.GetType();
 
-                List<PropertyInfo> properties =
-                    instance
-                        .GetType()
-                        .GetProperties()
-                        .Where(property => property.CanRead && property.CanWrite)
-                        .Where(property => IsGenericCollection(property))
+                var dataMembers =
+                    instanceType
+                        .GetMembers(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    // this restricts us to members decorated with the DataMember attribute (fields, properties etc)
+                        .Where(member => member.CustomAttributes.Any(a => a.AttributeType == typeof(DataMemberAttribute)))
+                        .Select(member => new ClassDataMember((dynamic)member))
+                        .Where(member => IsGenericCollection(member))
                         .ToList();
 
                 // replace the underlying collection with a list-based implementation
-                foreach (PropertyInfo property in properties)
+                foreach (ClassDataMember member in dataMembers)
                 {
-                    Type[] collectionType = property.PropertyType.GenericTypeArguments;
+                    Type[] collectionType = member.MemberType.GenericTypeArguments;
 
                     // invoke; new List<T>(IEnumerable<T>) 
-                    object list = Activator.CreateInstance(typeof(List<>).MakeGenericType(collectionType), property.GetValue(instance));
+                    object list = Activator.CreateInstance(
+                        typeof(List<>).MakeGenericType(collectionType),
+                        member.GetValue(instance));
 
                     // set the property value to the list based implementation
-                    property.SetValue(instance, list);
+                    member.SetValue(instance, list);
 
                     TransformCollection(list, flaggedObjects);
                 }
             }
         }
-
-        private bool IsGenericCollection(PropertyInfo property)
+        
+        private bool IsGenericCollection(ClassDataMember member)
         {
-            Type propertyType = property.PropertyType;
-            if (!propertyType.IsGenericType)
+            Type memberType = member.MemberType;
+
+            if (!memberType.IsGenericType)
                 return false;
 
-            Type[] genericArgs = propertyType.GetGenericArguments();
+            Type[] genericArgs = memberType.GetGenericArguments();
+            
             if (genericArgs.Length != 1)
                 return false;
 
             return 
                 typeof(ICollection<>)
                     .MakeGenericType(genericArgs)
-                    .IsAssignableFrom(propertyType);
+                    .IsAssignableFrom(memberType);
         }
 
         public System.ServiceModel.Channels.Message SerializeRequest(System.ServiceModel.Channels.MessageVersion messageVersion, object[] parameters)
         {
-            return _defaultFormatter.SerializeRequest(messageVersion, parameters);
+            return 
+                _defaultFormatter
+                    .SerializeRequest(messageVersion, parameters);
         }
     }
 }

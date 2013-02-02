@@ -10,16 +10,26 @@ namespace Contracts.Domain
     [DataContract(IsReference=true)]
     public class Cat
     {
+        [DataMember]
+        private string _name;
+
         public Cat()
         {
-            Descendants = new List<Cat>();
+            _descendants = new List<Cat>();
         }
 
-        [DataMember]
+        public Cat(string name)
+            : this()
+        {
+            _name = name;
+        }
+
         public virtual string Name
         {
-            get;
-            set;
+            get
+            {
+                return _name;
+            }
         }
 
         [DataMember]
@@ -30,10 +40,21 @@ namespace Contracts.Domain
         }
 
         [DataMember]
-        public virtual ICollection<Cat> Descendants
+        private ICollection<Cat> _descendants;
+
+        public virtual IEnumerable<Cat> Descendants
         {
-            get;
-            set;
+            get
+            {
+                return _descendants;
+            }
         }
+
+        public void AddDescendant(Cat cat)
+        {
+            _descendants.Add(cat);
+        }
+
+
     }
 }
